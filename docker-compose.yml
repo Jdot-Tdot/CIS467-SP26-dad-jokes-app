@@ -22,7 +22,9 @@ services:
 
   # ---------- Express API ----------
   api:
-    build: ./api
+    build:
+      context: ./api
+      target: dev
     container_name: dadjokes-api
     ports:
       - "3000:3000"
@@ -37,15 +39,45 @@ services:
         condition: service_healthy
     restart: unless-stopped
 
+    # watch stuff
+    # command: ["node", "--watch", "/app/src/index.ts"]
+    develop:
+      watch:
+        - path: ./api/src
+          action: sync
+          target: /app/src
+        - path: ./api/package*.json
+          action: rebuild
+          target: /app/package*.json
+
   # ---------- React Frontend (served by nginx) ----------
   frontend:
-    build: ./frontend
+    build: 
+      context: ./frontend
+      target: dev
     container_name: dadjokes-frontend
     ports:
-      - "8080:80"
+      #- "8080:80"
+      - "8080:5173"
     depends_on:
       - api
     restart: unless-stopped
+  # watch stuff
+    command: ["npm", "run", "dev"]
+    develop:
+      watch:
+        - path: ./frontend/src
+          target: /app/src
+          action: sync
+        - path: ./frontend/index.html
+          target: /app/index.html
+          action: sync
+        - path: ./frontend/nginx.conf
+          target: /etc/nginx/conf.d/default.conf
+          action: sync+restart
+        - path: ./frontend/package*.json
+          target: /app/package*.json
+          action: rebuild
 
 # top level volume
 volumes:
