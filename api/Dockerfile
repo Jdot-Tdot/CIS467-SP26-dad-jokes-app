@@ -1,12 +1,12 @@
 # ---- Build Stage ----
-FROM node:20-alpine as base
+FROM node:20-alpine AS base
 WORKDIR /app
 
 # Copy dependency manifests first (layer caching)
 # package* gets both package.json and package-lock.json (if it exists)
 COPY package*.json ./
 
-FROM base as dev
+FROM base AS dev
 RUN npm install
 COPY . .
 CMD ["npm", "run", "dev"]

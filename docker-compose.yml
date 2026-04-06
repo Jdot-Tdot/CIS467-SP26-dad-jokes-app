@@ -9,10 +9,14 @@ services:
     volumes:
       - pgdata:/var/lib/postgresql/data
       - ./db/init.sql:/docker-entrypoint-initdb.d/init.sql
+    secrets:
+      - postgres_user
+      - postgres_password
+      - postgres_db
     environment:
-      POSTGRES_USER: dadjokes
-      POSTGRES_PASSWORD: dadjokes
-      POSTGRES_DB: dadjokes
+      POSTGRES_USER_FILE: /run/secrets/postgres_user
+      POSTGRES_PASSWORD_FILE: /run/secrets/postgres_password
+      POSTGRES_DB: /run/secrets/postgres_db
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U dadjokes" ]
       interval: 5s
@@ -28,12 +32,16 @@ services:
     container_name: dadjokes-api
     ports:
       - "3000:3000"
+    secrets:
+      - postgres_user
+      - postgres_password
+      - postgres_db
     environment:
       DB_HOST: db
       DB_PORT: 5432
-      DB_USER: dadjokes
-      DB_PASSWORD: dadjokes
-      DB_NAME: dadjokes
+      DB_USER_FILE: /run/secrets/postgres_user
+      DB_PASSWORD_FILE: /run/secrets/postgres_password
+      DB_NAME_FILE: /run/secrets/postgres_db
     depends_on:
       db:
         condition: service_healthy
@@ -78,6 +86,14 @@ services:
         - path: ./frontend/package*.json
           target: /app/package*.json
           action: rebuild
+
+secrets:
+  postgres_password:
+    file: ./secrets/postgres_password.txt
+  postgres_user:
+    file: ./secrets/postgres_user.txt
+  postgres_db:
+    file: ./secrets/postgres_db.txt
 
 # top level volume
 volumes:
