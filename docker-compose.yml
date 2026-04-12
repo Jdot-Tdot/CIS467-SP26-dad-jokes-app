@@ -23,6 +23,24 @@ services:
       timeout: 5s
       retries: 5
 
+# From https://docs.docker.com/guides/pgadmin/
+  pgadmin: # extra info/changes from https://www.youtube.com/watch?v=qECVC6t_2mU 
+    image: dpage/pgadmin4:9.14 # updated it because I looked at https://www.pgadmin.org/docs/pgadmin4/latest/release_notes.html
+    container_name: dadjokes-pgadmin
+    ports:
+      - 5050:80
+    environment:
+      # Required by pgAdmin
+      PGADMIN_DEFAULT_EMAIL: demo@example.com
+      PGADMIN_DEFAULT_PASSWORD: secret
+
+      # Don't require the user to login
+      PGADMIN_CONFIG_SERVER_MODE: 'False'
+
+      # Don't require a "master" password after logging in
+      PGADMIN_CONFIG_MASTER_PASSWORD_REQUIRED: 'False'
+    restart: always
+
   # --- Redis used for Cache
   redis:
     image: redis:7-alpine
@@ -57,7 +75,7 @@ services:
       DB_USER_FILE: /run/secrets/postgres_user
       DB_PASSWORD_FILE: /run/secrets/postgres_password
       DB_NAME_FILE: /run/secrets/postgres_db
-      REDIS_HOST: redis://redis:6379
+      REDIS_URL: redis://redis:6379 #REDIS_URL has to be the same as in redis.ts
     depends_on:
       db:
         condition: service_healthy

@@ -8,4 +8,4 @@ export const redis = new Redis( REDIS_URL, {
 } );
 
 redis.on("connect", () => console.log("Redis Connected"));
-redis.on("error", (err) => console.error(`Redis Error: ${err.message}`));
+redis.on("error", (err) => console.error(`Redis Error: ${err}`));
