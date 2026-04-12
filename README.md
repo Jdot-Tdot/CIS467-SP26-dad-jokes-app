@@ -136,3 +136,15 @@ npm run dev
 # Note: Vite proxies /api to http://api:3000 by default.
 # For local dev, change the proxy target in vite.config.ts to http://localhost:3000.
 ```
+
+# Services Added
+
+## pgAdmin
+
+I added the pgadmin image, to where if you open it up on:
+- http://localhost:5050/
+The hostname/address is 172.18.0.3 (I got from doing a docker inspect on the id of the docker image)
+The Name, User, and Password is all "dadjokes"
+
+I also added a favicon. This favicon has its eyes open when the tab is focused, but it then closes its eyes when the tab is not focused. If I need to add extra functionality with the API in the future, I could make it have a notification if a new joke is added to the database.
+I just used a useEffect in the App.tsx, and added the link in the index.html. However, I also had to update tsconfig to include types for the imported pngs.
