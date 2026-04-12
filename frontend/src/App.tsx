@@ -1,4 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
+// favicon stuff
+import faviconOpen from "./dadjokes_favicon_opened.png"; // had to update tsconfig.json to allow importing images as modules
+import faviconClosed from "./dadjokes_favicon_closed.png"; // find the info on google. https://share.google/aimode/JFxhyAcr5LJR6aVVb
 
 // ---------------------------------------------------------------------------
 // Types
@@ -115,6 +118,18 @@ export default function App() {
       })
       .catch(console.error);
   };
+
+  // favicon toggle based on view
+  useEffect(() => {
+    const updateFavicon = () => {
+      const link = document.querySelector<HTMLLinkElement>("link[rel='icon']");
+      if (link) {
+        link.href = document.hidden ? faviconClosed : faviconOpen;
+      }
+    };
+    document.addEventListener("visibilitychange", updateFavicon);
+    return () => document.removeEventListener("visibilitychange", updateFavicon);
+  }, []);
 
   return (
     <div style={styles.page}>
