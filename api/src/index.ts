@@ -2,6 +2,7 @@ import express, { Request, Response } from "express";
 import cors from "cors";
 import { Pool } from "pg";
 import { readFileSync } from "node:fs";
+import { redis } from "./redis";
 
 // ---------------------------------------------------------------------------
 // Database connection
@@ -14,7 +15,8 @@ const pool = new Pool({
   password: readFileSync(process.env.DB_PASSWORD_FILE || "", "utf8").trim(),
   database: readFileSync(process.env.DB_NAME_FILE || "", "utf8").trim(),
 });
-
+// Cache TTL in seconds
+const TTL = 3600;
 // Simple retry loop – the API container often starts before Postgres is ready.
 async function waitForDb(retries = 10, delay = 3000): Promise<void> {
   for (let i = 0; i < retries; i++) {
@@ -56,15 +58,37 @@ app.get("/api/jokes", async (req: Request, res: Response) => {
   try {
     const { category } = req.query;
     let result;
+    let key = "jokes"+(category ? ":"+category : ":all");
     if (category) {
+      // check cache
+      const cacheJokes = await redis.get(key);
+      // cache hit
+      if (cacheJokes) {
+        return res.json( JSON.parse(cacheJokes) );
+      }
+      // cache miss
+      console.log("Cache miss for key:", key);
       result = await pool.query(
         "SELECT * FROM jokes WHERE category = $1 ORDER BY id",
         [category]
       );
+      // store in cache
+      await redis.set(key, JSON.stringify(result.rows), "EX", TTL);
     } else {
+      // check cache
+      const cacheJokes = await redis.get(key);
+      // cache hit
+      if (cacheJokes) {
+        return res.json( JSON.parse(cacheJokes) );
+      }
+      // cache miss
+      console.log("Cache miss for key:", key);
       result = await pool.query("SELECT * FROM jokes ORDER BY id");
+      // store in cache
+      await redis.set(key, JSON.stringify(result.rows), "EX", TTL);
+
     }
-    res.json(result.rows);
+    return res.json(result.rows);
   } catch (err) {
     console.error("Error fetching jokes:", err);
     res.status(500).json({ error: "Failed to fetch jokes" });
@@ -94,6 +118,9 @@ app.get("/api/jokes/:id", async (req: Request, res: Response) => {
       res.status(404).json({ error: "Joke not found" });
       return;
     }
+    // cache single joke by id
+    const key = "joke:"+req.params.id;
+    await redis.set(key, JSON.stringify(result.rows[0]), "EX", TTL);
     res.json(result.rows[0]);
   } catch (err) {
     console.error("Error fetching joke:", err);
@@ -113,6 +140,13 @@ app.post("/api/jokes", async (req: Request, res: Response) => {
       "INSERT INTO jokes (setup, punchline, category) VALUES ($1, $2, $3) RETURNING *",
       [setup, punchline, category || "general"]
     );
+    // invalidate cache for all jokes and category
+    await redis.del("jokes:all");
+    if (category) {
+      await redis.del("jokes:"+category);
+    }
+
+
     res.status(201).json(result.rows[0]);
   } catch (err) {
     console.error("Error creating joke:", err);

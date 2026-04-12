@@ -23,6 +23,21 @@ services:
       timeout: 5s
       retries: 5
 
+  # --- Redis used for Cache
+  redis:
+    image: redis:7-alpine
+    container_name: dadjokes-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redisdata:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 3s
 
   # ---------- Express API ----------
   api:
@@ -42,8 +57,11 @@ services:
       DB_USER_FILE: /run/secrets/postgres_user
       DB_PASSWORD_FILE: /run/secrets/postgres_password
       DB_NAME_FILE: /run/secrets/postgres_db
+      REDIS_HOST: redis://redis:6379
     depends_on:
       db:
+        condition: service_healthy
+      redis:
         condition: service_healthy
     restart: unless-stopped
 
@@ -70,7 +88,7 @@ services:
     depends_on:
       - api
     restart: unless-stopped
-  # watch stuff
+    # watch stuff
     command: ["npm", "run", "dev"]
     develop:
       watch:
@@ -98,3 +116,4 @@ secrets:
 # top level volume
 volumes:
   pgdata:
+  redisdata:
